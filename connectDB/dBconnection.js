@@ -4,8 +4,8 @@ const dbConfig={
     host: 'localhost',
     port: '3306',
     user: 'root',
-    password: 'amanda',
-    database: 'tp-final-uade'
+    password: 'Maitena1.',
+    database: 'uade2024'
 }
 
 const connection =mysql.createConnection(dbConfig)

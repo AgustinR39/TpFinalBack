@@ -1,6 +1,7 @@
-const express= require('express');
-const app= express();
+const express = require('express');
+const app = express();
 const cors = require('cors');
+const PORT =require("./connectDB/config")
 
 app.use(cors());
 
@@ -21,10 +22,9 @@ app.use('/api/cliente',clienteroutes)
 app.use('/api/producto',productoroutes)
 app.use('/api/pedido',pedidoroutes)
 
-const PORT = process.env.PORT || 3001;
 
 app.listen(PORT,() =>{
-     console.log('listening on port '+PORT);
+     console.log('listening on port '+ PORT);
  });
 
 

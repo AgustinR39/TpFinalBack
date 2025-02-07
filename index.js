@@ -30,6 +30,16 @@ app.use('/api/pedido', pedidoroutes);
 
 const serverPort = process.env.PORT || 3001;
 
+pool.getConnection((err, connection) => {
+    if (err) {
+        console.error('❌ Error al conectar a MySQL:', err);
+        process.exit(1); 
+    } else {
+        console.log('✅ Conexión a MySQL exitosa');
+        connection.release(); 
+    }
+});
+
 const server = app.listen(serverPort, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en el puerto ${serverPort}`);
 });
@@ -39,10 +49,17 @@ server.on('error', (err) => {
         console.error(`❌ Error: El puerto ${serverPort} ya está en uso.`);
         process.exit(1); 
     } else {
-        console.error('❌ Error inesperado:', err);
+        console.error('❌ Error inesperado en el servidor:', err);
     }
 });
 
+process.on('uncaughtException', (err) => {
+    console.error('🚨 Excepción no controlada:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🚨 Rechazo de promesa no manejado:', reason);
+});
 
 
 

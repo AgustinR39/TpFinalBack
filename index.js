@@ -32,7 +32,13 @@ app.use('/api/producto', productoroutes);
 app.use('/api/pedido', pedidoroutes);
 
 const serverPort = process.env.PORT || 3001;
+
 app.listen(serverPort, () => {
+    console.log(`🚀 Servidor corriendo en el puerto ${serverPort}`);
+    console.log('✅ Esperando solicitudes...');
+});
+
+app.listen(serverPort, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en el puerto ${serverPort}`);
 });
 

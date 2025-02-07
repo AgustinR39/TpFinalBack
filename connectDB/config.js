@@ -18,11 +18,11 @@
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'autorack.proxy.rlwy.net',  // Usa el nuevo host
+    host: process.env.DB_HOST || 'autorack.proxy.rlwy.net',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASS || 'ucrJBTSwoiRbXQQtLVjSQFYwLEiwlooj',
     database: process.env.DB_NAME || 'railway',
-    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 47880,  // Usa el puerto correcto
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 47880,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -39,4 +39,6 @@ const pool = mysql.createPool({
     }
 })();
 
-module.exports = pool;
+const PORT = process.env.PORT || 3001;
+
+module.exports = { pool, PORT };  

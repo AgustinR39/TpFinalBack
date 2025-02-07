@@ -3,12 +3,9 @@ const cors = require('cors');
 const { pool, PORT } = require("./connectDB/config");
 
 const app = express();
-app.use(cors()); 
-app.use(express.json());
 
-console.log('🚀 Iniciando servidor...');
-console.log(`🔹 Variable de entorno PORT: ${process.env.PORT}`);
-console.log(`🔹 Variable en config.js PORT: ${PORT}`);
+app.use(cors());
+app.use(express.json());
 
 app.use((req, res, next) => {
     console.log(`➡️  Nueva solicitud recibida: ${req.method} ${req.url}`);
@@ -33,13 +30,17 @@ app.use('/api/pedido', pedidoroutes);
 
 const serverPort = process.env.PORT || 3001;
 
-app.listen(serverPort, () => {
+const server = app.listen(serverPort, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en el puerto ${serverPort}`);
-    console.log('✅ Esperando solicitudes...');
 });
 
-app.listen(serverPort, '0.0.0.0', () => {
-    console.log(`🚀 Servidor corriendo en el puerto ${serverPort}`);
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Error: El puerto ${serverPort} ya está en uso.`);
+        process.exit(1); 
+    } else {
+        console.error('❌ Error inesperado:', err);
+    }
 });
 
 

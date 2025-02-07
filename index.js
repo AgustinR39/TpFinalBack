@@ -1,11 +1,14 @@
 const express = require('express');
 const cors = require('cors');
-const { PORT } = require("./connectDB/config"); 
+const { PORT } = require("./connectDB/config");
 
 const app = express();
-
 app.use(cors()); 
-app.use(express.json()); 
+app.use(express.json());
+
+console.log('🚀 Iniciando servidor...');
+console.log(`🔹 Variable de entorno PORT: ${process.env.PORT}`);
+console.log(`🔹 Variable en config.js PORT: ${PORT}`);
 
 app.use((req, res, next) => {
     console.log(`➡️  Nueva solicitud recibida: ${req.method} ${req.url}`);
@@ -13,6 +16,7 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => {
+    console.log('✔️ Respuesta a "/" enviada correctamente');
     res.send('🚀 Backend funcionando correctamente');
 });
 
@@ -27,7 +31,7 @@ app.use('/api/cliente', clienteroutes);
 app.use('/api/producto', productoroutes);
 app.use('/api/pedido', pedidoroutes);
 
-const serverPort = PORT || 3001;
+const serverPort = process.env.PORT || 3001;
 app.listen(serverPort, () => {
     console.log(`🚀 Servidor corriendo en el puerto ${serverPort}`);
 });

@@ -18,10 +18,14 @@
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME
+    host: process.env.DB_HOST || 'autorack.proxy.rlwy.net',  // Usa el nuevo host
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASS || 'ucrJBTSwoiRbXQQtLVjSQFYwLEiwlooj',
+    database: process.env.DB_NAME || 'railway',
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 47880,  // Usa el puerto correcto
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
 // Verificar conexión

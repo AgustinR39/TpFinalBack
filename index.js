@@ -1,31 +1,31 @@
 const express = require('express');
-const app = express();
 const cors = require('cors');
-const { PORT } = require("./connectDB/config")
+const { PORT } = require("./connectDB/config"); 
 
-app.use(cors());
+const app = express();
 
-//PARA PODER PROCESAR JSON
+app.use(cors()); 
+app.use(express.json()); 
 
-app.use(express.json());
+app.get('/', (req, res) => {
+    res.send('🚀 Backend funcionando correctamente');
+});
 
-//LLAMAR A LA RUTAS
-const proveedorroutes= require('./routes/proveedorRoute');
-const clienteroutes= require('./routes/clienteRoute');
-const productoroutes= require('./routes/productoRoute');
-const pedidoroutes= require('./routes/pedidoRoute');
+const proveedorroutes = require('./routes/proveedorRoute');
+const clienteroutes = require('./routes/clienteRoute');
+const productoroutes = require('./routes/productoRoute');
+const pedidoroutes = require('./routes/pedidoRoute');
 
-
-app.use('/api/proveedor',proveedorroutes)
+app.use('/api/proveedor', proveedorroutes);
 app.use('/uploads', express.static('uploads'));
-app.use('/api/cliente',clienteroutes)
-app.use('/api/producto',productoroutes)
-app.use('/api/pedido',pedidoroutes)
+app.use('/api/cliente', clienteroutes);
+app.use('/api/producto', productoroutes);
+app.use('/api/pedido', pedidoroutes);
 
-
-app.listen(PORT, () =>{
-     console.log('listening on port '+ PORT);
- });
+const serverPort = PORT || 3001;
+app.listen(serverPort, () => {
+    console.log(`🚀 Servidor corriendo en el puerto ${serverPort}`);
+});
 
 
 

@@ -26,9 +26,8 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 10000, 
+    connectTimeout: 10000,
 });
-
 
 async function verificarConexion() {
     let intentos = 0;

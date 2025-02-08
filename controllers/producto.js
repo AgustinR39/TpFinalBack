@@ -1,78 +1,86 @@
-const path = require("path");
-const connection = require("../connectDB/dBconnection");
-const fs = require("fs");
+const { pool } = require("../connectDB/config");
 
-function getAllProductos(req, res) {
-    const query = "SELECT * from producto";
+const getAllProductos = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const query = "SELECT * FROM producto";
+        const [rows] = await connection.query(query);
+        res.json(rows);
+    } catch (error) {
+        console.error("❌ Error en getAllProductos:", error);
+        res.status(500).json({ error: "Error al obtener productos" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
-    connection.query(query, (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error retrieving products from database");
-        } else {
-            res.json(result);
-        }
-    });
-}
+const getProductoById = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const productoId = req.params.id;
+        const query = "SELECT * FROM producto WHERE id = ?";
+        const [rows] = await connection.query(query, [productoId]);
+        res.json(rows);
+    } catch (error) {
+        console.error("❌ Error en getProductoById:", error);
+        res.status(500).json({ error: "Error al obtener el producto" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
-function createProducto(req, res) {
-    const { id, nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra } = req.body;
-    const fotoProducto = req.file ? `../uploads/${req.file.filename}` : null;
-    const query = "INSERT INTO producto (id, nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra, fotoProducto) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+const createProducto = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const { nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra } = req.body;
+        const fotoProducto = req.file ? `../uploads/${req.file.filename}` : null;
+        const query = "INSERT INTO producto (nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra, fotoProducto) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        const [result] = await connection.query(query, [nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra, fotoProducto]);
+        res.json({ message: "Producto creado con éxito", productoId: result.insertId });
+    } catch (error) {
+        console.error("❌ Error en createProducto:", error);
+        res.status(500).json({ error: "Error al crear el producto" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
-    connection.query(query, [id, nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra, fotoProducto], (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error, couldn't insert product");
-        } else {
-            res.json(result);
-        }
-    });
-}
+const updateProducto = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const id = req.params.id;
+        const { nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra } = req.body;
+        const fotoProducto = req.file ? `../uploads/${req.file.filename}` : null;
+        const query = "UPDATE producto SET nombre=?, nombreComercial=?, seleccion=?, precioVenta=?, proveedor=?, precioCompra=?, fotoProducto=? WHERE id=?";
+        await connection.query(query, [nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra, fotoProducto, id]);
+        res.json({ message: "Producto actualizado con éxito" });
+    } catch (error) {
+        console.error("❌ Error en updateProducto:", error);
+        res.status(500).json({ error: "Error al actualizar el producto" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
-function updateProducto(req, res) {
-    const id = req.params.id;
-    const { nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra } = req.body;
-    const fotoProducto = req.file ? `../uploads/${req.file.filename}` : null;
-    const query = "UPDATE producto SET nombre=?, nombreComercial=?, seleccion=?, precioVenta=?, proveedor=?, precioCompra=?, fotoProducto=? WHERE id=?";
-
-    connection.query(query, [nombre, nombreComercial, seleccion, precioVenta, proveedor, precioCompra, fotoProducto, id], (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error, couldn't update product");
-        } else {
-            res.json(result);
-        }
-    });
-}
-
-function getProductoById(req, res) {
-    const productoId = req.params.id;
-    const query = "SELECT * FROM producto WHERE id = ?";
-
-    connection.query(query, [productoId], (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error retrieving product from database");
-        } else {
-            res.json(result);
-        }
-    });
-}
-
-function deleteProducto(req, res) {
-    const productoId = req.params.id;
-    const query = "DELETE FROM producto WHERE id=?";
-
-    connection.query(query, [productoId], (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error deleting product from database");
-        } else {
-            res.json(result);
-        }
-    });
-}
+const deleteProducto = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const productoId = req.params.id;
+        const query = "DELETE FROM producto WHERE id=?";
+        await connection.query(query, [productoId]);
+        res.json({ message: "Producto eliminado con éxito" });
+    } catch (error) {
+        console.error("❌ Error en deleteProducto:", error);
+        res.status(500).json({ error: "Error al eliminar el producto" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
 module.exports = {
     getAllProductos,

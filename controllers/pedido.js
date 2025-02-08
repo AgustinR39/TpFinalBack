@@ -1,153 +1,153 @@
-const connection = require("../connectDB/dBconnection");
+const { pool } = require("../connectDB/config");
 
-function getAllPedidos(req, res) {
-    const query = `
-        SELECT p.id, p.fechaCreacion, p.saldoTotal, pp.cantidad, 
-               c.nombre AS cliente, pr.nombre AS producto, pr.precioVenta
-        FROM pedido p
-        JOIN cliente c ON p.clienteId = c.id
-        JOIN pedido_producto pp ON p.id = pp.pedidoId
-        JOIN producto pr ON pp.productoId = pr.id
-    `;
-
-    connection.query(query, (err, result) => {
-        if (err) {
-            console.error("Error al consultar pedidos: ", err);
-            res.status(500).json({ error: "Error al obtener pedidos de la base de datos" });
-        } else {
-            res.json(result);
-        }
-    });
-}
-
-function getPedidoById(req, res) {
-    const pedidoId = req.params.id;
-    const query = `
-        SELECT p.id, p.fechaCreacion, p.saldoTotal, pp.cantidad, 
-               c.nombre AS cliente, pr.nombre AS producto, pr.precioVenta
-        FROM pedido p
-        JOIN cliente c ON p.clienteId = c.id
-        JOIN pedido_producto pp ON p.id = pp.pedidoId
-        JOIN producto pr ON pp.productoId = pr.id
-        WHERE p.id = ?
-    `;
-
-    connection.query(query, [pedidoId], (err, result) => {
-        if (err) {
-            console.error("Error al obtener pedido por ID: ", err);
-            res.status(500).json({ error: "Error al obtener el pedido desde la base de datos" });
-        } else {
-            res.json(result);
-        }
-    });
-}
-
-function createPedido(req, res) {
-    const { clienteId, fechaCreacion, productos } = req.body;
-
-    if (!clienteId || !productos || productos.length === 0) {
-        return res.status(400).json({ error: "Faltan campos requeridos o productos." });
+const getAllPedidos = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const query = `
+            SELECT p.id, p.fechaCreacion, p.saldoTotal, pp.cantidad, 
+                   c.nombre AS cliente, pr.nombre AS producto, pr.precioVenta
+            FROM pedido p
+            JOIN cliente c ON p.clienteId = c.id
+            JOIN pedido_producto pp ON p.id = pp.pedidoId
+            JOIN producto pr ON pp.productoId = pr.id
+        `;
+        const [rows] = await connection.query(query);
+        res.json(rows);
+    } catch (error) {
+        console.error("❌ Error en getAllPedidos:", error);
+        res.status(500).json({ error: "Error al obtener pedidos" });
+    } finally {
+        if (connection) connection.release();
     }
+};
 
-    const queryPedido = "INSERT INTO pedido (clienteId, saldoTotal, fechaCreacion) VALUES (?, ?, ?)";
-    connection.query(queryPedido, [clienteId, 0, fechaCreacion], function (err, result) {
-        if (err) {
-            console.error("Error al crear el pedido:", err);
-            return res.status(500).json({ error: "No se pudo crear el pedido." });
+const getPedidoById = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const pedidoId = req.params.id;
+        const query = `
+            SELECT p.id, p.fechaCreacion, p.saldoTotal, pp.cantidad, 
+                   c.nombre AS cliente, pr.nombre AS producto, pr.precioVenta
+            FROM pedido p
+            JOIN cliente c ON p.clienteId = c.id
+            JOIN pedido_producto pp ON p.id = pp.pedidoId
+            JOIN producto pr ON pp.productoId = pr.id
+            WHERE p.id = ?
+        `;
+        const [rows] = await connection.query(query, [pedidoId]);
+        res.json(rows);
+    } catch (error) {
+        console.error("❌ Error en getPedidoById:", error);
+        res.status(500).json({ error: "Error al obtener el pedido" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
+
+const createPedido = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const { clienteId, fechaCreacion, productos } = req.body;
+        if (!clienteId || !productos || productos.length === 0) {
+            return res.status(400).json({ error: "Faltan campos requeridos o productos." });
         }
 
+        const queryPedido = "INSERT INTO pedido (clienteId, saldoTotal, fechaCreacion) VALUES (?, ?, ?)";
+        const [result] = await connection.query(queryPedido, [clienteId, 0, fechaCreacion]);
         const pedidoId = result.insertId;
-        let totalPedido = 0;
 
-        let queryDetalle = "INSERT INTO pedido_producto (pedidoId, productoId, cantidad) VALUES ?";
+        let totalPedido = 0;
         const detalles = productos.map(prod => {
             totalPedido += prod.precioVenta * prod.cantidad;
             return [pedidoId, prod.productoId, prod.cantidad];
         });
 
-        connection.query(queryDetalle, [detalles], function (err) {
-            if (err) {
-                console.error("Error al insertar detalles del pedido:", err);
-                return res.status(500).json({ error: "No se pudieron insertar los detalles del pedido." });
-            }
+        const queryDetalle = "INSERT INTO pedido_producto (pedidoId, productoId, cantidad) VALUES ?";
+        await connection.query(queryDetalle, [detalles]);
 
-            const queryUpdateSaldo = "UPDATE pedido SET saldoTotal = ? WHERE id = ?";
-            connection.query(queryUpdateSaldo, [totalPedido, pedidoId], function (err) {
-                if (err) {
-                    console.error("Error al actualizar el saldo del pedido:", err);
-                    return res.status(500).json({ error: "No se pudo actualizar el saldo del pedido." });
-                }
-                res.json({ message: "Pedido creado con éxito", pedidoId });
-            });
-        });
-    });
-}
+        const queryUpdateSaldo = "UPDATE pedido SET saldoTotal = ? WHERE id = ?";
+        await connection.query(queryUpdateSaldo, [totalPedido, pedidoId]);
 
-function updatePedido(req, res) {
-    const pedidoId = req.params.id;
-    const { clienteId, fechaCreacion, productos } = req.body;
-
-    if (!clienteId || !productos || productos.length === 0) {
-        return res.status(400).json({ error: "Faltan campos requeridos o productos." });
+        await connection.commit();
+        res.json({ message: "Pedido creado con éxito", pedidoId });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error("❌ Error en createPedido:", error);
+        res.status(500).json({ error: "Error al crear el pedido" });
+    } finally {
+        if (connection) connection.release();
     }
+};
 
-    const queryUpdatePedido = "UPDATE pedido SET clienteId = ?, fechaCreacion = ? WHERE id = ?";
-    connection.query(queryUpdatePedido, [clienteId, fechaCreacion, pedidoId], function (err) {
-        if (err) {
-            console.error("Error al actualizar el pedido:", err);
-            return res.status(500).json({ error: "No se pudo actualizar el pedido." });
+const updatePedido = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const pedidoId = req.params.id;
+        const { clienteId, fechaCreacion, productos } = req.body;
+        if (!clienteId || !productos || productos.length === 0) {
+            return res.status(400).json({ error: "Faltan campos requeridos o productos." });
         }
+
+        const queryUpdatePedido = "UPDATE pedido SET clienteId = ?, fechaCreacion = ? WHERE id = ?";
+        await connection.query(queryUpdatePedido, [clienteId, fechaCreacion, pedidoId]);
 
         const queryDeleteDetalle = "DELETE FROM pedido_producto WHERE pedidoId = ?";
-        connection.query(queryDeleteDetalle, [pedidoId], function (err) {
-            if (err) {
-                console.error("Error al eliminar detalles antiguos:", err);
-                return res.status(500).json({ error: "No se pudo eliminar los detalles del pedido." });
-            }
+        await connection.query(queryDeleteDetalle, [pedidoId]);
 
-            let totalPedido = 0;
-            let queryDetalle = "INSERT INTO pedido_producto (pedidoId, productoId, cantidad) VALUES ?";
-            const detalles = productos.map(prod => {
-                totalPedido += prod.precioVenta * prod.cantidad;
-                return [pedidoId, prod.productoId, prod.cantidad];
-            });
-
-            connection.query(queryDetalle, [detalles], function (err) {
-                if (err) {
-                    console.error("Error al insertar nuevos detalles:", err);
-                    return res.status(500).json({ error: "No se pudieron insertar los nuevos detalles." });
-                }
-
-                const queryUpdateSaldo = "UPDATE pedido SET saldoTotal = ? WHERE id = ?";
-                connection.query(queryUpdateSaldo, [totalPedido, pedidoId], function (err) {
-                    if (err) {
-                        console.error("Error al actualizar saldo:", err);
-                        return res.status(500).json({ error: "No se pudo actualizar el saldo del pedido." });
-                    }
-                    res.json({ message: "Pedido actualizado con éxito", pedidoId });
-                });
-            });
+        let totalPedido = 0;
+        const detalles = productos.map(prod => {
+            totalPedido += prod.precioVenta * prod.cantidad;
+            return [pedidoId, prod.productoId, prod.cantidad];
         });
-    });
-}
 
-function deletePedido(req, res) {
-    const pedidoId = req.params.id;
-    const queryDeleteDetalle = "DELETE FROM pedido_producto WHERE pedidoId = ?";
-    connection.query(queryDeleteDetalle, [pedidoId], function (err) {
-        if (err) {
-            console.error("Error al eliminar detalles del pedido:", err);
-            return res.status(500).json({ error: "No se pudieron eliminar los detalles del pedido." });
-        }
+        const queryDetalle = "INSERT INTO pedido_producto (pedidoId, productoId, cantidad) VALUES ?";
+        await connection.query(queryDetalle, [detalles]);
+
+        const queryUpdateSaldo = "UPDATE pedido SET saldoTotal = ? WHERE id = ?";
+        await connection.query(queryUpdateSaldo, [totalPedido, pedidoId]);
+
+        await connection.commit();
+        res.json({ message: "Pedido actualizado con éxito", pedidoId });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error("❌ Error en updatePedido:", error);
+        res.status(500).json({ error: "Error al actualizar el pedido" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
+
+const deletePedido = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const pedidoId = req.params.id;
+
+        const queryDeleteDetalle = "DELETE FROM pedido_producto WHERE pedidoId = ?";
+        await connection.query(queryDeleteDetalle, [pedidoId]);
+
         const queryDeletePedido = "DELETE FROM pedido WHERE id = ?";
-        connection.query(queryDeletePedido, [pedidoId], function (err) {
-            if (err) {
-                console.error("Error al eliminar el pedido:", err);
-                return res.status(500).json({ error: "No se pudo eliminar el pedido." });
-            }
-            res.json({ message: "Pedido eliminado con éxito" });
-        });
-    });
-}
+        await connection.query(queryDeletePedido, [pedidoId]);
+
+        await connection.commit();
+        res.json({ message: "Pedido eliminado con éxito" });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error("❌ Error en deletePedido:", error);
+        res.status(500).json({ error: "Error al eliminar el pedido" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
 module.exports = { getAllPedidos, getPedidoById, createPedido, updatePedido, deletePedido };

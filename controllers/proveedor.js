@@ -1,74 +1,84 @@
-const connection = require("../connectDB/dBconnection");
+const { pool } = require("../connectDB/config");
 
-function getAllProveedores(req, res) {
-    const query = "SELECT * FROM proveedor";
+const getAllProveedores = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const query = "SELECT * FROM proveedor";
+        const [rows] = await connection.query(query);
+        res.json(rows);
+    } catch (error) {
+        console.error("❌ Error en getAllProveedores:", error);
+        res.status(500).json({ error: "Error al obtener proveedores" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
-    connection.query(query, (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error retrieving notes from database");
-        } else {
-            res.json(result);
-        }
-    });
-}
+const getProveedorById = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const proveedorId = req.params.id;
+        const query = "SELECT * FROM proveedor WHERE id = ?";
+        const [rows] = await connection.query(query, [proveedorId]);
+        res.json(rows);
+    } catch (error) {
+        console.error("❌ Error en getProveedorById:", error);
+        res.status(500).json({ error: "Error al obtener el proveedor" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
-function createProveedor(req, res) {
-    const { nombre, cuit } = req.body;
-    const query = "INSERT INTO proveedor (nombre, cuit) VALUES (?, ?)";
+const createProveedor = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const { nombre, cuit } = req.body;
+        const query = "INSERT INTO proveedor (nombre, cuit) VALUES (?, ?)";
+        const [result] = await connection.query(query, [nombre, cuit]);
+        res.json({ message: "Proveedor creado con éxito", proveedorId: result.insertId });
+    } catch (error) {
+        console.error("❌ Error en createProveedor:", error);
+        res.status(500).json({ error: "Error al crear el proveedor" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
-    connection.query(query, [nombre, cuit], (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error, no se pudo insertar el proveedor");
-        } else {
-            res.status(201).json(result);
-        }
-    });
-}
+const updateProveedor = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const id = req.params.id;
+        const { nombre, cuit } = req.body;
+        const query = "UPDATE proveedor SET nombre=?, cuit=? WHERE id=?";
+        await connection.query(query, [nombre, cuit, id]);
+        res.json({ message: "Proveedor actualizado con éxito" });
+    } catch (error) {
+        console.error("❌ Error en updateProveedor:", error);
+        res.status(500).json({ error: "Error al actualizar el proveedor" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
-function updateProveedor(req, res) {
-    const { id } = req.params;
-    const { nombre, cuit } = req.body;
-    const query = "UPDATE proveedor SET nombre=?, cuit=? WHERE id=?";
-
-    connection.query(query, [nombre, cuit, id], (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error, couldn't insert notes");
-        } else {
-            res.json(result);
-        }
-    });
-}
-
-function getProveedorById(req, res) {
-    const proveedorId = req.params.id;
-    const query = "SELECT * FROM proveedor WHERE id = ?";
-
-    connection.query(query, [proveedorId], (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error retrieving note from database");
-        } else {
-            res.json(result);
-        }
-    });
-}
-
-function deleteProveedor(req, res) {
-    const proveedorId = req.params.id;
-    const query = "DELETE FROM proveedor WHERE id=?";
-
-    connection.query(query, [proveedorId], (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send("Error deleting notes from database");
-        } else {
-            res.json(result);
-        }
-    });
-}
+const deleteProveedor = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const proveedorId = req.params.id;
+        const query = "DELETE FROM proveedor WHERE id=?";
+        await connection.query(query, [proveedorId]);
+        res.json({ message: "Proveedor eliminado con éxito" });
+    } catch (error) {
+        console.error("❌ Error en deleteProveedor:", error);
+        res.status(500).json({ error: "Error al eliminar el proveedor" });
+    } finally {
+        if (connection) connection.release();
+    }
+};
 
 module.exports = {
     getAllProveedores,

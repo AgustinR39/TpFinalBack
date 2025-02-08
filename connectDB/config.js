@@ -18,31 +18,42 @@
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'autorack.proxy.rlwy.net',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASS || 'ucrJBTSwoiRbXQQtLVjSQFYwLEiwlooj',
-    database: process.env.DB_NAME || 'railway',
-    port: process.env.MYSQLPORT ? parseInt(process.env.MYSQLPORT) : 3306,
+    host: process.env.DB_HOST || "autorack.proxy.rlwy.net",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASS || "ucrJBT5woiRbXQQtLVjSQFYWlEiwIooj",
+    database: process.env.DB_NAME || "railway",
+    port: process.env.MYSQLPORT ? parseInt(process.env.MYSQLPORT) : 47880,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    connectTimeout: 10000, 
+    acquireTimeout: 10000, 
 });
 
-(async () => {
-    try {
-        const connection = await pool.getConnection();
-        console.log('✅ Conexión a MySQL exitosa');
-        connection.release();
-    } catch (error) {
-        console.error('❌ Error conectando a MySQL:', error);
+async function verificarConexion() {
+    let intentos = 0;
+    const maxIntentos = 5;
+
+    while (intentos < maxIntentos) {
+        try {
+            const connection = await pool.getConnection();
+            console.log('✅ Conexión a MySQL exitosa');
+            connection.release();
+            break;
+        } catch (error) {
+            console.error(`❌ Intento ${intentos + 1} - Error conectando a MySQL:`, error.message);
+            intentos++;
+            await new Promise((res) => setTimeout(res, 5000)); 
+        }
     }
-})();
 
-const PORT = process.env.PORT;
-
-if (!PORT) {
-    console.error("❌ ERROR: process.env.PORT no está definido.");
-    process.exit(1);
+    if (intentos === maxIntentos) {
+        console.error("🚨 No se pudo conectar a MySQL después de varios intentos. Apagando servidor.");
+        process.exit(1);
+    }
 }
 
-module.exports = { pool, PORT };  
+verificarConexion();
+
+module.exports = { pool };
+

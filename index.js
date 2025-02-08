@@ -5,6 +5,8 @@ const { pool, PORT } = require("./connectDB/config");
 const app = express();
 
 app.use(cors());
+app.use(cors({ origin: "https://tpfinalfront-production.up.railway.app" }));
+
 app.use(express.json());
 
 app.use((req, res, next) => {

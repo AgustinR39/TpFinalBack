@@ -28,13 +28,14 @@ app.use('/api/cliente', clienteroutes);
 app.use('/api/producto', productoroutes);
 app.use('/api/pedido', pedidoroutes);
 
-const serverPort = PORT; 
+const serverPort = process.env.PORT || 8080;
 
 if (!serverPort) {
-    console.error("❌ ERROR: process.env.PORT no está definido.");
+    console.error("❌ ERROR: process.env.PORT no está definido en Railway.");
     process.exit(1);
+} else {
+    console.log(`📡 Puerto detectado por Railway: ${serverPort}`);
 }
-console.log(`📡 Puerto detectado por Railway: ${serverPort}`);
 
 pool.getConnection((err, connection) => {
     if (err) {

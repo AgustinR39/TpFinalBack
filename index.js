@@ -29,6 +29,7 @@ app.use('/api/producto', productoroutes);
 app.use('/api/pedido', pedidoroutes);
 
 const serverPort = process.env.PORT || 3001;
+console.log(`📡 Puerto detectado por Railway: ${serverPort}`);
 
 pool.getConnection((err, connection) => {
     if (err) {
@@ -59,6 +60,20 @@ process.on('uncaughtException', (err) => {
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('🚨 Rechazo de promesa no manejado:', reason);
+});
+
+process.on('exit', (code) => {
+    console.log(`🚨 El proceso de Node.js está cerrando con código ${code}`);
+});
+
+process.on('SIGINT', () => {
+    console.log("🚨 SIGINT recibido. Cerrando servidor.");
+    process.exit(1);
+});
+
+process.on('SIGTERM', () => {
+    console.log("🚨 SIGTERM recibido. Railway podría estar matando el proceso.");
+    process.exit(1);
 });
 
 

@@ -22,13 +22,12 @@ const pool = mysql.createPool({
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASS || 'ucrJBTSwoiRbXQQtLVjSQFYwLEiwlooj',
     database: process.env.DB_NAME || 'railway',
-    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 47880,
+    port: process.env.MYSQLPORT ? parseInt(process.env.MYSQLPORT) : 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
 
-// Verificar conexión
 (async () => {
     try {
         const connection = await pool.getConnection();
@@ -39,6 +38,11 @@ const pool = mysql.createPool({
     }
 })();
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
+
+if (!PORT) {
+    console.error("❌ ERROR: process.env.PORT no está definido.");
+    process.exit(1);
+}
 
 module.exports = { pool, PORT };  

@@ -28,7 +28,12 @@ app.use('/api/cliente', clienteroutes);
 app.use('/api/producto', productoroutes);
 app.use('/api/pedido', pedidoroutes);
 
-const serverPort = process.env.PORT || 3001;
+const serverPort = PORT; 
+
+if (!serverPort) {
+    console.error("❌ ERROR: process.env.PORT no está definido.");
+    process.exit(1);
+}
 console.log(`📡 Puerto detectado por Railway: ${serverPort}`);
 
 pool.getConnection((err, connection) => {
@@ -73,10 +78,7 @@ process.on('SIGINT', () => {
 
 process.on('SIGTERM', () => {
     console.log("🚨 SIGTERM recibido. Railway podría estar matando el proceso.");
-    process.exit(1);
 });
-
-
 
 
 
